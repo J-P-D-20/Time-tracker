@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredericka+the+Great&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+  <title>Time Tracker Data</title>
+</head>
+<body>
+
+  <div class="container">
+
+  <div class="time-tracker">
+    <h1>TIME TRACKER</h1>
+      <button id="start">START</button>   
+  </div>
+
+  <div class="table-container">
+    <div id="time-table">
+         <h1>Tracked Time Per Day</h1>
+        <table class="records">
+          <tr>
+            <th>Date</th>
+            <th>Duration</th>
+          </tr>
+          <tbody id="data">
+          </tbody>
+        </table>
+    </div>
+    
+<div id="highest-time">
+  <div>
+  </div>
+  
+  
+  
+</div>
+
+        
+        </div>
+       </div>
+
+  <script>
+    // Fetch data from your Express backend
+    function loadData(){
+    fetch('/data')
+      .then(response => response.json())
+      .then(data => {
+        const list = document.getElementById('data');
+        list.innerHTML = '';  
+      data.forEach(entry => {
+
+        const row = document.createElement('tr');
+        const date = document.createElement('td');
+        const duration = document.createElement('td');
+        date.textContent = `${entry.date} `;
+        duration.textContent = formatTIme(entry.duration);
+          
+
+
+          row.appendChild(date);
+          row.appendChild(duration);
+          list.appendChild(row);
+
+          
+      });
+       
+      })
+      .catch(error => {
+        console.error('Error fetching time data:', error);
+      });
+
+    }
+
+
+      let hours = 0;
+      let minutes = 0;
+      let seconds = 0;
+      let clock;
+      let timeStart = false;
+
+      function time() {
+
+        if(timeStart) return;
+        timeStart = true;
+      
+
+      const container = document.querySelector('.time-tracker');
+      //date
+      const currentDate = document.createElement('h3')
+      currentDate.classList.add('date');
+      currentDate.textContent = new Date().toISOString().split('T')[0];
+      container.appendChild(currentDate);
+
+      //time
+      clock = document.createElement('div');
+      clock.classList.add('time');
+      clock.textContent = `${hours}:${minutes}:${seconds}`;
+      
+      container.appendChild(clock);
+      
+      //stop button
+      const stopbtn = document.createElement('button')
+      stopbtn.classList.add('stop');
+      stopbtn.textContent = 'STOP';
+      stopbtn.style.margin = '10px'
+      container.appendChild(stopbtn);
+
+       const timeInterval = setInterval(updateclock,1000);
+      
+      
+      stopbtn.addEventListener('click', () =>{
+
+        clearInterval(timeInterval)
+       
+      
+       const recordedTime = hours + minutes + seconds;
+       const formattedTime = formatTIme(recordedTime);
+
+       const data = {
+          date : new Date().toISOString().split('T')[0],
+          duration : recordedTime
+       }
+
+       fetch('/data', {
+        method : 'POST',
+        headers: {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify(data)
+       })
+       .then(res => res.json())
+      
+       .then(response => {
+        console.log('sent to back end:', response),
+        loadData();
+        loadHighest();
+       })
+       .catch(err => console.log('error sending: ',err))
+      
+
+      stopbtn.remove();
+      currentDate.remove();
+      clock.remove();
+
+
+      hours = 0;
+      minutes = 0;
+      seconds = 0;
+      timeStart = false
+      })
+
+      }
+
+
+        function loadHighest(){
+          fetch('/highest')
+          .then(response => response.json())
+          .then(data => {
+
+          const highestTime = document.getElementById('highest-time');
+          highestTime.innerHTML = '';
+          
+          const highestDuration = document.createElement('h2');
+          const highestDate = document.createElement('h3');
+          const textHeader = document.createElement('h1');
+
+          highestDuration.textContent = formatTIme(data.duration);
+          highestDate.textContent = `${data.date}`;
+          textHeader.textContent = 'Highest Time Tracked';
+          
+          highestTime.appendChild(textHeader);
+          highestTime.appendChild(highestDuration);
+          highestTime.appendChild(highestDate);
+          })
+          .catch(err => console.log("error fetching highest time: ", err));
+        }
+        
+
+        
+
+        //FUNCTIONS
+        function updateclock(params) {
+          seconds++;
+          if(seconds === 60){
+            seconds = 0;
+            minutes++;
+            if(minutes === 60){
+              minutes = 0;
+              hours++;
+            }
+          }
+          clock.textContent = `${hours}:${minutes}:${seconds}`;
+        }
+        
+
+
+        function formatTIme(seconds) {
+          
+          const hours = String(Math.floor(seconds/3600)).padStart(2,'0');
+          const mins = String(Math.floor((seconds % 3600)/60)).padStart(2,'0');
+          const secs = String(Math.floor(seconds % 60)).padStart(2,'0');
+
+          return `${hours}:${mins}:${secs}`
+        }
+        const btn = document.getElementById('start').addEventListener('click',time);
+        loadData();
+        loadHighest();
+
+
+        
+
+
+    </script>
+  </body>
+  </html>
