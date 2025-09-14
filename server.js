@@ -9,6 +9,7 @@ app.use(express.static('public'))
 
 await checkFile()
 
+
 app.get('/data',async (req,res) =>{
     const data = await readData();
     console.log("sending data..",data);
@@ -29,8 +30,6 @@ app.get('/highest', async (req, res) =>{
     res.json(highest)
 
 })
-
-
 
 app.post('/data', async(req,res) => {
     console.log(req.body);
